@@ -198,5 +198,6 @@ venv.bak/
 lecture/
 .idea/
 db/
+webtoon/
 __dev*
 *.gitignore.swp

@@ -130,6 +130,18 @@ def load_episode_list_from_file(path):
             episode_list.append(Episode._make(line.strip().split('|')))
         return episode_list
 
+LIST_HTML_HEAD = '<html>\n<head>\n\t<meta charset="utf-8>\n</head>\n<body>\n\t<table>\n'
+LIST_HTML_TR = f'''<tr>
+                <td><img src="{e.img_url}"></td>
+                <td>{e.title}</td>
+                <td>{e.rating}</td>
+                <td>{e.created_date}</td>
+                </tr>
+                '''
+LIST_HTML_TAIL = '\t\t</table>\n</body>\n</html>'
+
+
+
         # return [Episode._make(line.strip().split('|')) for line in f]
 
 

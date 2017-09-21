@@ -26,7 +26,7 @@ class NaverWebtoonCrawler:
         self.episode_list = list()
         # 객체 생성 시, 'db/{webtoon_id}.txt'파일이 존재하면
         # 바로 load() 해오도록 작성
-        self.load(init==True)
+        self.load(init=True)
 
     @property
     def total_episode_count(self):
@@ -155,8 +155,8 @@ class NaverWebtoonCrawler:
         path = 'db/%s.txt' % self.webtoon_id
         pickle.dump(obj, open(path, 'wb'))
 
-
     def load(self, path=None, init=False):
+        print(self.episode_list)
         """
         현재폴더를 기준으로 db/<webtoon_id>.txt 파일의 내용을 불러와
         pickle로 self.episode_list를 복원
@@ -169,14 +169,64 @@ class NaverWebtoonCrawler:
             if not init:
                 print('파일이 없습니다')
 
+    def make_list_html(self):
+        '''
+        self.episode_list를 HTML파일로 만들어준다.
+        webtoon/{webtoon_id}.html
+
+        1. webtoon 폴더 있는지 검사 후 생성
+        2. webtoon/{webtoon_id}.html 파일객체 할당 또는 with문으로 open
+        3. open한 파일에 html앞부분 작성
+        4. episode_list를 for문 돌며 <tr>...</tr> 부분 반복작성
+        5. html 뒷부분 작성
+        6. 파일닫기 또는 with문 빠져나가기
+        7. 해당파일 경로 리턴
+        ex)
+        <html>
+        <head>
+            <meta charset="utf-8">
+        </head>
+        <body>
+            <table>
+                <tr>
+                    <td><img src=".."></td>
+                    <td>제목</td>
+                    <td>별점</td>
+                    <td>날짜</td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        :return:
+        '''
+
+        if not os.path.isdir('webtoon'):
+            os.mkdir('webtoon')
+
+        path = 'webtoon/%s.txt' % self.webtoon_id
+        with open(path, 'wt') as f:
+            f.write(
+                utils.LIST_HTML_HEAD
+            )
+            for e in self.episode_list:
+                f.write(utils.LIST_HTML_TR.format(
+                    img_url = e.img_url,
+                    title = e.title,
+                    rating = e.rating,
+                    created_date = e.created_date)
+                )
+            f.write(
+                utils.LIST_HTML_TAIL
+            )
+
+
+
+
 
 
 crawler = NaverWebtoonCrawler(696617)
 # print(crawler.up_to_date)
-# crawler.update_episode_list()
-# for e in crawler.episode_list:
-#     print(e)
-print(crawler.get_first_page_episode_list())
+crawler.load()
 
 
 # print('총 에피소드 수는 {}개'.format(crawler.total_episode_count))
