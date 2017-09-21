@@ -1,21 +1,11 @@
 """
 class NaverWebtoonCrawler생성
-    초기화메서드
+    init 메서드
         webtoon_id
-        episode_list (빈 listclass NaverWebtoonCrawler:
-            를 할당
-    인스턴스 메서드
-        def get_episode_list(self, page)
-            해당 페이지의 episode_list를 생성, self.episode_list에 할당
-        def clear_episode_list(self)
-            자신의 episode_list를 빈 리스트로 만듬
-        def get_all_episode_list(self)
-            webtoon_id의 모든 episode를 생성
-        def add_new_episode_list(self)
-            새로 업데이트된 episode목록만 생성
+        episode_list (빈 list) 를 할당
 """
 import os
-
+import requests
 import utils
 import pickle
 
@@ -32,8 +22,7 @@ class NaverWebtoonCrawler:
     def total_episode_count(self):
 
         el = utils.get_webtoon_episode_list(self.webtoon_id)
-        no = int(el[0].no)
-        return no
+        return int(el[0].no)
 
     @property
     def up_to_date(self):
@@ -41,19 +30,7 @@ class NaverWebtoonCrawler:
         현재 가지고있는 episode_list가 웹상의 최신 episode까지 가지고 있는지
         :return: boolean값
         """
-        ##################내코드###########################
-        # el = utils.get_webtoon_episode_list(self.webtoon_id)
-        # up_to_date_no = int(el[0].no)
-        #
-        # path = '651673_251_242.txt'
-        # before_el = utils.load_episode_list_from_file(path)
-        # before_no = int(before_el[0].no)
-        #
-        # if int(up_to_date_no) != int(before_no):
-        #     return True
-        # else:
-        #     return False
-        ##################################################
+
         # 지금 가지고 있는 총 Episode의 개수
         # self.episode_list에 저장되어있음.
         #   -> list형 객체
@@ -61,6 +38,7 @@ class NaverWebtoonCrawler:
         #   -> 내장함수 len(s)
         ###################################################
         cur_episode_count = len(self.episode_list)
+        print(cur_episode_count)
         total_episode_count = self.total_episode_count
 
         # return cur_episode_count == total_episode_count
@@ -79,6 +57,7 @@ class NaverWebtoonCrawler:
         # 반환된 list(episode)들을 해당 episode의 no가
         # recent_episode_no보다 클 때 까지만 self.episode_list에 추가
         ###############
+
         recent_episode_no = self.episode_list[0].no if self.episode_list else 0
 
         print('- Update episode list atart ( Recent episode no : %s) - ' % recent_episode_no)
@@ -92,7 +71,7 @@ class NaverWebtoonCrawler:
             for episode in el:
                 # 각 episode의 no가 recent_episode_no보다 클 경우
                 # self.episode_list에 추가
-                if int(episode.no) > recent_episode_no:
+                if int(episode.no) > int(recent_episode_no):
                     new_list.append(episode)
                     if int(episode.no) == 1:
                         break
@@ -118,19 +97,6 @@ class NaverWebtoonCrawler:
         return len(self.episode_list)
 
 
-        ###########내코드###########
-        # if not force_update:
-        #     el = utils.get_webtoon_episode_list(self.webtoon_id)
-        #
-        #     path = '651673_251_242.txt'
-        #     before_el = utils.load_episode_list_from_file(path)
-        #
-        #     self.episode_list = before_el.append(el[0])
-        #
-        # else:
-        #     el = utils.get_webtoon_episode_list(self.webtoon_id)
-        #     self.episode_list = el
-        ###########################
 
     def save(self, path=None):
         """
@@ -156,18 +122,38 @@ class NaverWebtoonCrawler:
         pickle.dump(obj, open(path, 'wb'))
 
     def load(self, path=None, init=False):
-        print(self.episode_list)
         """
         현재폴더를 기준으로 db/<webtoon_id>.txt 파일의 내용을 불러와
         pickle로 self.episode_list를 복원
         :return:
         """
         try:
-            path = 'db/%s.txt' % self.webtoon_id
+            path = f'db/{self.webtoon_id}.txt'
+            # path = 'db/%s.txt' % self.webtoon_id
             self.episode_list = pickle.load(open(path, 'rb'))
         except FileNotFoundError:
             if not init:
                 print('파일이 없습니다')
+
+    def save_list_thumbnail(self):
+        """
+        webtoon/{webtoon_id}_thumbnail/<episode_no>.jpg
+        1. webtoon/{webtoon_id}_thumbnail이라는 폴더가 존재하는지 확인 후 생성
+        2. self.episode_list를 순회하며 각 episode의 img_url경로의 파일을 저장
+        :return: 저장한 thumbnail 개수
+        """
+        # webtoon/{self.webtoon_id}에 해당하는 폴더 생성
+        thumbnail_dir = f'webtoon/{self.webtoon_id}_thumbnail'
+        os.makedirs(thumbnail_dir, exist_ok=True)
+
+        # 각 episode의 img_url속성에 해당하는 이미지를 다운로드
+        for episode in self.episode_list:
+            response = requests.get(episode.img_url)
+            filepath = f'{thumbnail_dir}/{episode.no}.jpg'
+
+            if not os.path.exists(filepath):
+                with open(filepath, 'wb') as f:
+                    f.write(response.content)
 
     def make_list_html(self):
         '''
@@ -181,52 +167,43 @@ class NaverWebtoonCrawler:
         5. html 뒷부분 작성
         6. 파일닫기 또는 with문 빠져나가기
         7. 해당파일 경로 리턴
-        ex)
-        <html>
-        <head>
-            <meta charset="utf-8">
-        </head>
-        <body>
-            <table>
-                <tr>
-                    <td><img src=".."></td>
-                    <td>제목</td>
-                    <td>별점</td>
-                    <td>날짜</td>
-                </tr>
-            </table>
-        </body>
-        </html>
+
         :return:
         '''
 
         if not os.path.isdir('webtoon'):
             os.mkdir('webtoon')
 
-        path = 'webtoon/%s.txt' % self.webtoon_id
-        with open(path, 'wt') as f:
-            f.write(
-                utils.LIST_HTML_HEAD
-            )
+        filename = f'webtoon/{self.webtoon_id}.html'
+        with open(filename, 'wt') as f:
+            # HTML 앞부분 작성
+            f.write(utils.LIST_HTML_HEAD)
+
+            # episode_list 순회하며 나머지 코드 작성
             for e in self.episode_list:
                 f.write(utils.LIST_HTML_TR.format(
-                    img_url = e.img_url,
-                    title = e.title,
-                    rating = e.rating,
-                    created_date = e.created_date)
-                )
-            f.write(
-                utils.LIST_HTML_TAIL
-            )
+                    img_url=f'./{self.webtoon_id}_thumbnail/{e.no}.jpg',
+                    title=e.title,
+                    rating=e.rating,
+                    created_date=e.created_date))
+
+            f.write(utils.LIST_HTML_TAIL)
+        return filename
 
 
+if __name__ == '__main__':
+
+    crawler = NaverWebtoonCrawler(696617)
+    crawler.update_episode_list()
+
+    if crawler.up_to_date:
+        print('아 업로드 왤케 느린거야 ㅡㅡ')
+    else:
+        print('최신화 업로드됐다! 업데이트 ㄱㄱ!')
+        crawler.update_episode_list()
+
+    crawler.save()
+    crawler.save_list_thumbnail()
+    crawler.make_list_html()
 
 
-
-
-crawler = NaverWebtoonCrawler(696617)
-# print(crawler.up_to_date)
-crawler.load()
-
-
-# print('총 에피소드 수는 {}개'.format(crawler.total_episode_count))

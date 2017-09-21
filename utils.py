@@ -1,9 +1,8 @@
-import pickle
 import requests
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 from collections import namedtuple
-#
+
 # NamedTuple(Episode) 을 사용해서
 #   이미지 주소(img_url)
 #   에피소드 제목(title)
@@ -12,12 +11,69 @@ from collections import namedtuple
 # 를 가지는 NamedTuple의 리스트를 생성
 
 # webtoon id를 입력받아 해당 웹툰의 첫 번째 페이지에 있는 episode리스트를 리턴하는 함수를 구현
-# requests를 사용!
+
+LIST_HTML_HEAD = '''<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <style>
+        body {
+            padding-top: 10px;
+        }
+        img {
+            height: 34px;
+        }
+        .table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th, .table>thead>tr>td, .table>thead>tr>th {
+            font-size: 11px;
+            height: 34px;
+            line-height: 34px;
+        }
+        .table>thead>tr>td, .table>thead>tr>th {
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+<table class="table table-stripped">
+<colgroup>
+    <col width="99">
+    <col width="*">
+    <col width="141">
+    <col width="76">
+</colgroup>
+<thead>
+    <tr>
+        <th>이미지</th>
+        <th>제목</th>
+        <th>별점</th>
+        <th>등록일</th>
+    </tr>
+</thead>
+'''
+
+LIST_HTML_TR = '''<tr>
+    <td><img src="{img_url}"></td>
+    <td>{title}</td>
+    <td>{rating}</td>
+    <td>{created_date}</td>
+</tr>
+'''
+
+LIST_HTML_TAIL = '''</table>
+</div>
+</body>
+</html>
+'''
 webtoon_yumi = 651673
 webtoon_denma = 119874
 
 Episode = namedtuple('Episode', ['no', 'img_url', 'title', 'rating', 'created_date'])
 webtoon_p = 696617
+
+
 def get_webtoon_episode_list(webtoon_id, page=1):
     """
     특정 page의 episode 리스트를 리턴하도록 리팩토링
@@ -41,7 +97,6 @@ def get_webtoon_episode_list(webtoon_id, page=1):
     episode_list = list()
     webtoon_table = soup.select_one('table.viewList')
 
-
     tr_list = webtoon_table.find_all('tr', recursive=False)
     for tr in tr_list:
         td_list = tr.find_all('td')
@@ -59,6 +114,7 @@ def get_webtoon_episode_list(webtoon_id, page=1):
         no = queryset['no'][0]
         # td_thumbnail에 해당하는 Tag의 첫 번째 a tag의 첫 번째 img태그의 'src'속성값
         img_url = td_thumbnail.a.img.get('src')
+
         # td_title tag의 내용을 좌우여백 잘라냄
         title = td_title.get_text(strip=True)
         # td_rating내의 strong태그내의 내용을 좌우여백 잘라냄
@@ -77,7 +133,6 @@ def get_webtoon_episode_list(webtoon_id, page=1):
         episode_list.append(episode)
 
     return episode_list
-
 
 
 def save_episode_list_to_file(webtoon_id, episode_list):
@@ -129,32 +184,7 @@ def load_episode_list_from_file(path):
         for line in f:
             episode_list.append(Episode._make(line.strip().split('|')))
         return episode_list
-
-LIST_HTML_HEAD = '<html>\n<head>\n\t<meta charset="utf-8>\n</head>\n<body>\n\t<table>\n'
-LIST_HTML_TR = f'''<tr>
-                <td><img src="{e.img_url}"></td>
-                <td>{e.title}</td>
-                <td>{e.rating}</td>
-                <td>{e.created_date}</td>
-                </tr>
-                '''
-LIST_HTML_TAIL = '\t\t</table>\n</body>\n</html>'
-
-
-
         # return [Episode._make(line.strip().split('|')) for line in f]
 
-
-
-
-
-# el = get_webtoon_episode_list(webtoon_yumi)
-# print(el)
-# pickle.dump(el, open('yumi_pickle.txt', 'wb'))
-
-# el = pickle.load(open('yumi_pickle.txt', 'rb'))
-# print(el)
-
-
-# save_episode_list_to_file(webtoon_yumi, el)
-# print(load_episode_list_from_file('651673_251_242.txt'))
+    el = get_webtoon_episode_list(webtoon_yumi)
+    # print(el)
