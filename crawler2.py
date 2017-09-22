@@ -9,7 +9,7 @@ import requests
 import utils
 import pickle
 
-
+#test
 class NaverWebtoonCrawler:
     def __init__(self, webtoon_id):
         self.webtoon_id = webtoon_id
